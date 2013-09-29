@@ -1,20 +1,15 @@
 // map_generator.cpp : create a map to tell the difference of an image
-//
+// Execution Environment: Ubuntu 13.04 Linux i686 with g++ 4.7.3
 // NAME:	  Shulang Lei
 // SID:		  200253624
 // DATE:	  September 28th, 2013
 //
 
-//#include "stdafx.h"		/* keep this ONLY IF using Microsoft Visual Studio */
 #include <cstring>
 #include <cstdarg>
 #include <cstdlib>
-
-#ifndef WIN32
-	#include <math.h>
-	#include <stdio.h>
-#endif
-
+#include <math.h>
+#include <stdio.h>
 
 /* image */
 
@@ -22,6 +17,8 @@ typedef unsigned char uchar_t;
 
 #define HEIGHT	256
 #define WIDTH	256
+#define BLOCKHEIGHT	8
+#define BLOCKWIDTH	8
 
 uchar_t	inputimage[HEIGHT][WIDTH];
 uchar_t outputimage[HEIGHT][WIDTH];
@@ -38,6 +35,12 @@ WriteImage(char*, uchar_t[HEIGHT][WIDTH]);
 
 void
 WriteColorImage(char*, uchar_t[3][HEIGHT][WIDTH]);
+
+uchar_t
+GetBlockLevelFromImage(
+    uchar_t/*index representing which block of the image on X*/, 
+    uchar_t/*index representing which block of the image on Y*/, 
+    uchar_t[HEIGHT][WIDTH]/*the inputing image*/);
 
 
 /* math */
@@ -67,6 +70,8 @@ public:
 
 void
 error(char*, ...);
+void
+debug(char*, ...);
 
 
 /* main function */
@@ -84,11 +89,7 @@ int main(int argc, char *argv[])
 
 	if(argc != 2)
 	{
-#ifdef WIN32
-		error("USAGE: %s <image.{bmp|gif|jpg|png}>\n", argv[0]);
-#else
-		error("USAGE: %s <image.raw>\n", argv[0]);
-#endif
+		error((char *)"USAGE: %s <image.raw>\n",  argv[0]);
 	}
 
 
@@ -104,11 +105,7 @@ int main(int argc, char *argv[])
 
 	/* write image */
 
-#ifdef WIN32
-	WriteImage( "output_image.png", outputimage );
-#else
-	WriteImage( "output_image.raw", outputimage );
-#endif
+	WriteImage((char *)"output_image.raw", outputimage );
 		
 	return 0;
 }
@@ -122,99 +119,53 @@ ProcessImage()
 	//
 	// TODO: Modify image as needed, saving result into
 	// "outputimage" or "coloroutputimage".
-	//
+	debug((char *)"DEBUG: the block level is \"%u\".\n", GetBlockLevelFromImage(0, 0, inputimage));
+	debug((char *)"DEBUG: the block level is \"%u\".\n", GetBlockLevelFromImage(1, 1, inputimage));
+	debug((char *)"DEBUG: the block level is \"%u\".\n", GetBlockLevelFromImage(2, 2, inputimage));
+	debug((char *)"DEBUG: the block level is \"%u\".\n", GetBlockLevelFromImage(3, 3, inputimage));
+	debug((char *)"DEBUG: the block level is \"%u\".\n", GetBlockLevelFromImage(4, 4, inputimage));
+	debug((char *)"DEBUG: the block level is \"%u\".\n", GetBlockLevelFromImage(5, 5, inputimage));
+	debug((char *)"DEBUG: the block level is \"%u\".\n", GetBlockLevelFromImage(6, 6, inputimage));
+	debug((char *)"DEBUG: the block level is \"%u\".\n", GetBlockLevelFromImage(7, 7, inputimage));
+	debug((char *)"DEBUG: the block level is \"%u\".\n", GetBlockLevelFromImage(8, 8, inputimage));
+	debug((char *)"DEBUG: the block level is \"%u\".\n", GetBlockLevelFromImage(9, 9, inputimage));
+	debug((char *)"DEBUG: the block level is \"%u\".\n", GetBlockLevelFromImage(10, 10, inputimage));
 }
 
 void
 ReadImage(char *pszPath, uchar_t image[HEIGHT][WIDTH])
 {
 
-#ifdef WIN32
-
-	CImage img;
-	
-	if( img.Load( CString(pszPath) ) != S_OK )
-		error("ERROR: Could not open image \"%s\".\n", pszPath);
-
-	if( ( img.GetHeight() != HEIGHT ) || ( img.GetWidth() != WIDTH ) )
-		error("ERROR: Image \"%s\" is not %dx%d.\n", pszPath, HEIGHT, WIDTH);
-
-	if( img.GetBPP() != 8 )
-		error("ERROR: Image \"%s\" is not 8-bit.\n", pszPath);
-
-	for(int i=0; i < HEIGHT; i++)
-		for(int j=0; j < WIDTH; j++)
-			image[i][j] = (uchar_t) *( (uchar_t*)img.GetPixelAddress(j, i) );
-
-	img.Destroy();
-
-#else
-
 	FILE *pRAW;
 
 	if( ( pRAW = fopen( pszPath, "rb" ) ) == NULL )
-		error("ERROR: Could not open image \"%s\".\n", pszPath);
+		error((char *)"ERROR: Could not open image \"%s\".\n", pszPath);
 
 	if( fread( image, sizeof(uchar_t), HEIGHT*WIDTH, pRAW ) <
 		( HEIGHT*WIDTH ) )
 	{
-		error("ERROR: Could not read image \"%s\".\n", pszPath);
+		error((char *)"ERROR: Could not read image \"%s\".\n", pszPath);
 	}
 
 	fclose(pRAW);
-
-#endif	/* WIN32 */
-
 }
 
 void
 WriteImage(char *pszPath, uchar_t image[HEIGHT][WIDTH])
 {
 
-#ifdef WIN32
-
-	CImage	img;
-	RGBQUAD	palette[256];
-
-	memset( palette, 0, 256*sizeof(RGBQUAD) );
-	
-	for(int i=0; i < 256; i++)
-	{
-		palette[i].rgbRed = (BYTE)i;
-		palette[i].rgbGreen = (BYTE)i;
-		palette[i].rgbBlue = (BYTE)i;
-	}
-	
-	if( !img.Create(WIDTH, HEIGHT, 8) )
-		error("ERROR: Could not create image \"%s\".\n", pszPath);
-
-	img.SetColorTable( 0, 256, palette );
-
-	for(int i=0; i < HEIGHT; i++)
-		for(int j=0; j < WIDTH; j++)
-			*( (uchar_t*)img.GetPixelAddress(j, i) ) = image[i][j];
-	
-	if( img.Save( CString(pszPath), Gdiplus::ImageFormatPNG ) != S_OK )
-		error("ERROR: Could not write image \"%s\".\n", pszPath);
-
-	img.Destroy();
-
-#else
-
 	FILE *pRAW;
 
 	if( ( pRAW = fopen( pszPath, "wb" ) ) == NULL )
-		error("ERROR: Could not create image \"%s\".\n", pszPath);
+		error((char *)"ERROR: Could not create image \"%s\".\n", pszPath);
 
 	if( fwrite( image, sizeof(uchar_t), HEIGHT*WIDTH, pRAW) <
 		( HEIGHT*WIDTH) )
 	{
-		error("ERROR: Could not write image \"%s\".\n", pszPath);
+		error((char *)"ERROR: Could not write image \"%s\".\n", pszPath);
 	}
 
 	fclose(pRAW);
-
-#endif	/* _WIN32_ */
 
 }
 
@@ -222,52 +173,22 @@ void
 WriteColorImage(char *pszPath, uchar_t image[3][HEIGHT][WIDTH])
 {
 
-#ifdef WIN32
-
-	CImage img;
-
-	if( !img.Create(WIDTH, HEIGHT, 24) )
-		error("ERROR: Could not create image \"%s\".\n", pszPath);
-
-	for(int i=0; i < HEIGHT; i++)
-	{
-		for(int j=0; j < WIDTH; j++)
-		{
-			img.SetPixelRGB( j,
-							 i,
-							 image[0][i][j],
-							 image[1][i][j],
-							 image[2][i][j] );
-		}
-	}
-
-	if( img.Save( CString(pszPath), Gdiplus::ImageFormatPNG ) != S_OK )
-		error("ERROR: Could not write image \"%s\".\n", pszPath);
-
-	img.Destroy();
-
-#else
-
 	FILE *pRAW;
 
 	if( ( pRAW = fopen( pszPath, "wb" ) ) == NULL )
-		error("ERROR: Could not create image \"%s\".\n", pszPath);
+		error((char *)"ERROR: Could not create image \"%s\".\n", pszPath);
 
 	for(int i=0; i < HEIGHT; i++)
 		for(int j=0; j < WIDTH; j++)
 			for(int k=0; k < 3; k++)
 				if( fwrite( &image[k][i][j], sizeof(uchar_t), 1, pRAW ) < 1 )
-					error("ERROR: Could not write image \"%s\".\n", pszPath);
+					error((char *)"ERROR: Could not write image \"%s\".\n", pszPath);
 
 	fclose(pRAW);
-
-#endif	/* WIN32 */
-
 }
 
 
 /* error */
-
 void error(char *psz, ...)
 {
 	va_list ap;
@@ -277,4 +198,45 @@ void error(char *psz, ...)
 	va_end(ap);
 
 	exit(-1);
+}
+
+/*debug*/
+void debug(char *psz, ...)
+{
+	va_list ap;
+	
+	va_start( ap, psz );
+	vfprintf( stdout, psz, ap );
+	va_end(ap);
+}
+
+uchar_t GetBlockLevelFromImage(
+    uchar_t blocknumX/*index representing which block of the image on X*/, 
+    uchar_t blocknumY/*index representing which block of the image on Y*/, 
+    uchar_t image[HEIGHT][WIDTH]/*the inputing image*/)
+{
+  int unitWidth = WIDTH/BLOCKWIDTH;
+  int unitHeight = HEIGHT/BLOCKHEIGHT;
+  int xOffset = blocknumX*unitWidth;
+  int yOffset = blocknumY*unitHeight;
+  int xEnd = xOffset+unitWidth-1;
+  int yEnd = yOffset+unitHeight-1;
+  if (xEnd > WIDTH || yEnd > HEIGHT) {
+    return 0;
+  }
+
+  int max_diff = 0;
+  for(int i=xOffset; i < xEnd; i++)
+    for(int j=yOffset; j < yEnd; j++)
+      for(int k=xOffset; k < xEnd; k++)
+        for(int l=yOffset; l < yEnd; l++)
+          if (max_diff < (image[i][j] - image[k][l]))
+            max_diff = (image[i][j] - image[k][l]);
+
+  //debug((char *)"DEBUG: the x start is \"%u\".\n", xOffset);
+  //debug((char *)"DEBUG: the y start is \"%u\".\n", yOffset);
+  //debug((char *)"DEBUG: the x end is \"%u\".\n", xEnd);
+  //debug((char *)"DEBUG: the y end is \"%u\".\n", yEnd);
+  debug((char *)"DEBUG: the max_diff is \"%u\".\n", max_diff);
+  return 1;
 }
