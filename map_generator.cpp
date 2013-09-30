@@ -1,5 +1,6 @@
 // map_generator.cpp : create a map to tell the difference of an image
-// Execution Environment: Ubuntu 13.04 Linux i686 with g++ 4.7.3
+// Tested Environment1: Ubuntu 13.04 Linux i686 with g++ 4.7.3
+// Tested Environment2: Darwin OSX X86_64 with g++ 4.2.1
 // NAME:	  Shulang Lei
 // SID:		  200253624
 // DATE:	  September 28th, 2013
@@ -21,7 +22,7 @@ typedef unsigned char uchar_t;
 #define BLOCKWIDTH	8
 
 uchar_t	inputimage[HEIGHT][WIDTH];
-uchar_t outputimage[HEIGHT][WIDTH];
+uchar_t outputimage[BLOCKHEIGHT][BLOCKWIDTH];
 uchar_t coloroutputimage[3][HEIGHT][WIDTH];
 
 void
@@ -31,7 +32,7 @@ void
 ReadImage(char*, uchar_t[HEIGHT][WIDTH]);
 
 void
-WriteImage(char*, uchar_t[HEIGHT][WIDTH]);
+WriteImage(char*, uchar_t[BLOCKHEIGHT][BLOCKWIDTH]);
 
 void
 WriteColorImage(char*, uchar_t[3][HEIGHT][WIDTH]);
@@ -42,9 +43,15 @@ GetBlockLevelFromImage(
     uchar_t/*index representing which block of the image on Y*/, 
     uchar_t[HEIGHT][WIDTH]/*the inputing image*/);
 
+uchar_t
+BlockXFromImg(
+    uchar_t/*index of image on X*/); 
+
+uchar_t
+BlockYFromImg(
+    uchar_t/*index of image on Y*/); 
 
 /* math */
-
 #define PI 3.1415926535897932384626433832795
 
 class Complex {
@@ -116,20 +123,11 @@ int main(int argc, char *argv[])
 void
 ProcessImage()
 {
-	//
 	// TODO: Modify image as needed, saving result into
 	// "outputimage" or "coloroutputimage".
-	debug((char *)"DEBUG: the block level is \"%u\".\n", GetBlockLevelFromImage(0, 0, inputimage));
-	debug((char *)"DEBUG: the block level is \"%u\".\n", GetBlockLevelFromImage(1, 1, inputimage));
-	debug((char *)"DEBUG: the block level is \"%u\".\n", GetBlockLevelFromImage(2, 2, inputimage));
-	debug((char *)"DEBUG: the block level is \"%u\".\n", GetBlockLevelFromImage(3, 3, inputimage));
-	debug((char *)"DEBUG: the block level is \"%u\".\n", GetBlockLevelFromImage(4, 4, inputimage));
-	debug((char *)"DEBUG: the block level is \"%u\".\n", GetBlockLevelFromImage(5, 5, inputimage));
-	debug((char *)"DEBUG: the block level is \"%u\".\n", GetBlockLevelFromImage(6, 6, inputimage));
-	debug((char *)"DEBUG: the block level is \"%u\".\n", GetBlockLevelFromImage(7, 7, inputimage));
-	debug((char *)"DEBUG: the block level is \"%u\".\n", GetBlockLevelFromImage(8, 8, inputimage));
-	debug((char *)"DEBUG: the block level is \"%u\".\n", GetBlockLevelFromImage(9, 9, inputimage));
-	debug((char *)"DEBUG: the block level is \"%u\".\n", GetBlockLevelFromImage(10, 10, inputimage));
+	for(int i=0; i < BLOCKHEIGHT; i++)
+          for(int j=0; j < BLOCKWIDTH; j++)
+            outputimage[i][j] = GetBlockLevelFromImage(j, i, inputimage);
 }
 
 void
@@ -151,7 +149,7 @@ ReadImage(char *pszPath, uchar_t image[HEIGHT][WIDTH])
 }
 
 void
-WriteImage(char *pszPath, uchar_t image[HEIGHT][WIDTH])
+WriteImage(char *pszPath, uchar_t image[BLOCKHEIGHT][BLOCKWIDTH])
 {
 
 	FILE *pRAW;
@@ -159,8 +157,8 @@ WriteImage(char *pszPath, uchar_t image[HEIGHT][WIDTH])
 	if( ( pRAW = fopen( pszPath, "wb" ) ) == NULL )
 		error((char *)"ERROR: Could not create image \"%s\".\n", pszPath);
 
-	if( fwrite( image, sizeof(uchar_t), HEIGHT*WIDTH, pRAW) <
-		( HEIGHT*WIDTH) )
+	if( fwrite( image, sizeof(uchar_t), BLOCKHEIGHT*BLOCKWIDTH, pRAW) <
+		( BLOCKHEIGHT*BLOCKWIDTH) )
 	{
 		error((char *)"ERROR: Could not write image \"%s\".\n", pszPath);
 	}
@@ -179,10 +177,10 @@ WriteColorImage(char *pszPath, uchar_t image[3][HEIGHT][WIDTH])
 		error((char *)"ERROR: Could not create image \"%s\".\n", pszPath);
 
 	for(int i=0; i < HEIGHT; i++)
-		for(int j=0; j < WIDTH; j++)
-			for(int k=0; k < 3; k++)
-				if( fwrite( &image[k][i][j], sizeof(uchar_t), 1, pRAW ) < 1 )
-					error((char *)"ERROR: Could not write image \"%s\".\n", pszPath);
+          for(int j=0; j < WIDTH; j++)
+            for(int k=0; k < 3; k++)
+              if( fwrite( &image[k][i][j], sizeof(uchar_t), 1, pRAW ) < 1 )
+                error((char *)"ERROR: Could not write image \"%s\".\n", pszPath);
 
 	fclose(pRAW);
 }
@@ -221,15 +219,15 @@ uchar_t GetBlockLevelFromImage(
   int yOffset = blocknumY*unitHeight;
   int xEnd = xOffset+unitWidth-1;
   int yEnd = yOffset+unitHeight-1;
-  if (xEnd > WIDTH || yEnd > HEIGHT) {
-    return 0;
-  }
-
   int max_diff = 0;
-  for(int i=xOffset; i < xEnd; i++)
-    for(int j=yOffset; j < yEnd; j++)
-      for(int k=xOffset; k < xEnd; k++)
-        for(int l=yOffset; l < yEnd; l++)
+
+  if (xEnd > WIDTH || yEnd > HEIGHT)
+    return max_diff;
+
+  for(int i=yOffset; i < yEnd; i++)
+    for(int j=xOffset; j < xEnd; j++)
+      for(int k=yOffset; k < yEnd; k++)
+        for(int l=xOffset; l < xEnd; l++)
           if (max_diff < (image[i][j] - image[k][l]))
             max_diff = (image[i][j] - image[k][l]);
 
@@ -237,6 +235,22 @@ uchar_t GetBlockLevelFromImage(
   //debug((char *)"DEBUG: the y start is \"%u\".\n", yOffset);
   //debug((char *)"DEBUG: the x end is \"%u\".\n", xEnd);
   //debug((char *)"DEBUG: the y end is \"%u\".\n", yEnd);
-  debug((char *)"DEBUG: the max_diff is \"%u\".\n", max_diff);
-  return 1;
+  //debug((char *)"DEBUG: the max_diff is \"%u\".\n", max_diff);
+  return max_diff;
+}
+
+uchar_t
+BlockXFromImg(
+    uchar_t x/*index of image on X*/)
+{
+  int unitWidth = WIDTH/BLOCKWIDTH;
+  return (int)x/unitWidth;
+}
+
+uchar_t
+BlockYFromImg(
+    uchar_t y/*index of image on Y*/)
+{
+  int unitHeight = HEIGHT/BLOCKHEIGHT;
+  return (int)y/unitHeight;
 }
