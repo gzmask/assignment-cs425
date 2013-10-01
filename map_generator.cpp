@@ -4,7 +4,6 @@
 // NAME:	  Shulang Lei
 // SID:		  200253624
 // DATE:	  September 28th, 2013
-//
 
 #include <cstring>
 #include <cstdarg>
@@ -34,19 +33,20 @@ ReadImage(char*, uchar_t[HEIGHT][WIDTH]);
 void
 WriteImage(char*, uchar_t[BLOCKHEIGHT][BLOCKWIDTH]);
 
-void
-WriteColorImage(char*, uchar_t[3][HEIGHT][WIDTH]);
 
+//get block grey level according to image axis (x,y)
 uchar_t
 GetBlockLevelFromImage(
     uchar_t/*index representing which block of the image on X*/, 
     uchar_t/*index representing which block of the image on Y*/, 
     uchar_t[HEIGHT][WIDTH]/*the inputing image*/);
 
+//convert source image x axis to x block axis
 uchar_t
 BlockXFromImg(
     uchar_t/*index of image on X*/); 
 
+//convert source image y axis to y block axis
 uchar_t
 BlockYFromImg(
     uchar_t/*index of image on Y*/); 
@@ -54,32 +54,9 @@ BlockYFromImg(
 /* math */
 #define PI 3.1415926535897932384626433832795
 
-class Complex {
-public:
-	/* construction/destruction */
-	Complex(double r, double i)		{ this->r = r; this->i = i; }
-	Complex()						{ r=0.0; i=0.0; }
-	~Complex()						{ r=0.0; i=0.0; }
-
-	/* operations */
-	Complex operator+(Complex &c)	{ return Complex( r+c.r, i+c.i ); }
-
-	//
-	// TODO: Add functions for subtraction, multiplication, modulus, etc.
-	//
-	
-	/* members */
-	double r, i;
-};
-
-
 /* error */
-
 void
 error(char*, ...);
-void
-debug(char*, ...);
-
 
 /* main function */
 
@@ -89,7 +66,6 @@ int main(int argc, char *argv[])
 
 	memset( inputimage, 0, HEIGHT*WIDTH*sizeof(uchar_t) );
 	memset( outputimage, 0, HEIGHT*WIDTH*sizeof(uchar_t) );
-	memset( coloroutputimage, 0, 3*HEIGHT*WIDTH*sizeof(uchar_t) );
 
 
 	/* command line arguments */
@@ -123,8 +99,6 @@ int main(int argc, char *argv[])
 void
 ProcessImage()
 {
-	// TODO: Modify image as needed, saving result into
-	// "outputimage" or "coloroutputimage".
 	for(int i=0; i < BLOCKHEIGHT; i++)
           for(int j=0; j < BLOCKWIDTH; j++)
             outputimage[i][j] = GetBlockLevelFromImage(j, i, inputimage);
@@ -167,25 +141,6 @@ WriteImage(char *pszPath, uchar_t image[BLOCKHEIGHT][BLOCKWIDTH])
 
 }
 
-void
-WriteColorImage(char *pszPath, uchar_t image[3][HEIGHT][WIDTH])
-{
-
-	FILE *pRAW;
-
-	if( ( pRAW = fopen( pszPath, "wb" ) ) == NULL )
-		error((char *)"ERROR: Could not create image \"%s\".\n", pszPath);
-
-	for(int i=0; i < HEIGHT; i++)
-          for(int j=0; j < WIDTH; j++)
-            for(int k=0; k < 3; k++)
-              if( fwrite( &image[k][i][j], sizeof(uchar_t), 1, pRAW ) < 1 )
-                error((char *)"ERROR: Could not write image \"%s\".\n", pszPath);
-
-	fclose(pRAW);
-}
-
-
 /* error */
 void error(char *psz, ...)
 {
@@ -196,16 +151,6 @@ void error(char *psz, ...)
 	va_end(ap);
 
 	exit(-1);
-}
-
-/*debug*/
-void debug(char *psz, ...)
-{
-	va_list ap;
-	
-	va_start( ap, psz );
-	vfprintf( stdout, psz, ap );
-	va_end(ap);
 }
 
 uchar_t GetBlockLevelFromImage(
@@ -221,21 +166,16 @@ uchar_t GetBlockLevelFromImage(
   int yEnd = yOffset+unitHeight-1;
   int max_diff = 0;
 
-  if (xEnd > WIDTH || yEnd > HEIGHT)
+  if (xEnd > WIDTH || yEnd > HEIGHT) /* boundary check */
     return max_diff;
 
-  for(int i=yOffset; i < yEnd; i++)
+  for(int i=yOffset; i < yEnd; i++) /* compare every pair of pixels within the block*/
     for(int j=xOffset; j < xEnd; j++)
       for(int k=yOffset; k < yEnd; k++)
         for(int l=xOffset; l < xEnd; l++)
           if (max_diff < (image[i][j] - image[k][l]))
-            max_diff = (image[i][j] - image[k][l]);
+            max_diff = (image[i][j] - image[k][l]); /* assgin the largest difference to be the block value */
 
-  //debug((char *)"DEBUG: the x start is \"%u\".\n", xOffset);
-  //debug((char *)"DEBUG: the y start is \"%u\".\n", yOffset);
-  //debug((char *)"DEBUG: the x end is \"%u\".\n", xEnd);
-  //debug((char *)"DEBUG: the y end is \"%u\".\n", yEnd);
-  //debug((char *)"DEBUG: the max_diff is \"%u\".\n", max_diff);
   return max_diff;
 }
 
